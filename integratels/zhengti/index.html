@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>连铸系统</title>
+    <link rel="stylesheet" href="./css/main.css"/>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            /* background: #555555; */
+        }
+
+        #progressbar {
+            background-color: #fff;
+            border-radius: 13px; /* (height of inner div) / 2 + padding */
+            padding: 3px;
+            position: absolute;
+            width: 90%;
+            bottom: 30px;
+            left: 5%;
+        }
+
+        #progressbar > div {
+            background-color: #83eeff;
+            width: 0%; /* Adjust with JavaScript */
+            height: 20px;
+            border-radius: 10px;
+        }
+
+        .over {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            /* background: #555; */
+            z-index: 3;
+        }
+
+        .text {
+            font-size: 40px;
+            text-align: center;
+            color: #fff;
+            font-family: cursive;
+        }
+
+        .pos-ab {
+            position: absolute;
+            width: 100%;
+            bottom: 70px;
+        }
+
+        #customize {
+            position: absolute;
+            left:0px;
+            /*width: 100%;*/
+            /*height: 100%;*/
+        }
+
+    </style>
+</head>
+<body>
+
+<div id="container"></div>
+<div id="customize"></div>
+
+<div class="over">
+    <div class="pos-ab">
+        <div class="text">
+            <span>加载中......</span>
+        </div>
+    </div>
+
+
+    <div id="progressbar">
+        <div></div>
+    </div>
+</div>
+
+<script src="../js/other/jquery-3.2.1.min.js"></script>
+<script src="../js/three.js"></script>
+<script src="../js/controls/OrbitControls.js"></script>
+<script src="../js/loader/STLLoader.js"></script>
+<script src="../js/other/stats.min.js"></script>
+<script src="../js/other/dat.gui.min.js"></script>
+<script src="../js/WebGL.js"></script>
+
+<script>
+
+    if (WEBGL.isWebGLAvailable() === false) {
+        document.body.appendChild(WEBGL.getWebGLErrorMessage());
+    }
+
+
+    var camera, scene, renderer, container
+    var control, loadIndex = 0, bigGroup, bigGroup2, smallGroup
+    var otherGroup, otherSmallGroup, otherSmallGroup2
+    var selectedObject
+    var then = 0, isWhite = false, loadIndexGb = 0, gbgroup, gbgroup2
+
+    var list = [
+        "gl-back-L1.STL",
+        "gl-back-L2.STL",
+        "gl-back-L3.STL",
+        "gl-back-L4.STL",
+        "gl-back-L5.STL",
+        "gl-back-L6.STL",
+        "gl-back-L7.STL",
+        "gl-back-R1.STL",
+        "gl-back-R2.STL",
+        "gl-back-R3.STL",
+        "gl-back-R4.STL",
+        "gl-back-R5.STL",
+        "gl-back-R6.STL",
+        "gl-back-R7.STL",
+        "gl-front-L1.STL",
+        "gl-front-L2.STL",
+        "gl-front-L3.STL",
+        "gl-front-L4.STL",
+        "gl-front-L5.STL",
+        "gl-front-L6.STL",
+        "gl-front-L7.STL",
+        "gl-front-R1.STL",
+        "gl-front-R2.STL",
+        "gl-front-R3.STL",
+        "gl-front-R4.STL",
+        "gl-front-R5.STL",
+        "gl-front-R6.STL",
+        "gl-front-R7.STL",
+        // "LZJZZ - GB-1.STL",
+        "LZJZZ - HZT-1.STL",
+        "JJQKSGHT-1.STL",
+        "LZJZZ - ZG^LZJZZ-1 SXD-ZZ-1 SXD-1.STL",
+        "LZJZZ - ZG^LZJZZ-1 SXD-ZZ-1 ZCL-1.STL",
+        "LZJZZ - ZG^LZJZZ-1 SXD-ZZ-1 ZCL-2.STL",
+        "LZJZZ - ZG^LZJZZ-1 SXD-ZZ-1 ZCL-3.STL",
+        "LZJZZ - ZG^LZJZZ-1 SXD-ZZ-1 ZCL-4.STL",
+        "LZJZZ - ZG^LZJZZ-1 YYG-1.STL",
+        "LZJZZ - ZG^LZJZZ-1 YYG-2.STL",
+        "LZJZZ - ZG^LZJZZ-1 YYG-3.STL",
+        "LZJZZ - ZG^LZJZZ-1 YYG-4.STL",
+        "LZJZZ - ZG^LZJZZ-1 YYG-5.STL",
+        "LZJZZ - ZG^LZJZZ-1 YYG-6.STL",
+        "LZJZZ - ZG^LZJZZ-1 YYG-7.STL",
+        "LZJZZ - ZG^LZJZZ-1 YYG-8.STL",
+        "LZJZZ - ZJG-1.STL",
+        "LZJZZ-0-D-2.STL"
+    ]
+
+    var gbList = [
+        "GB-ZZ - SXD-GB-120.STL",
+        "GB-ZZ - SXD-GB-119.STL",
+        "GB-ZZ - SXD-GB-118.STL",
+        "GB-ZZ - SXD-GB-117.STL",
+        "GB-ZZ - SXD-GB-116.STL",
+        "GB-ZZ - SXD-GB-115.STL",
+        "GB-ZZ - SXD-GB-114.STL",
+        "GB-ZZ - SXD-GB-113.STL",
+        "GB-ZZ - SXD-GB-112.STL",
+        "GB-ZZ - SXD-GB-111.STL",
+        "GB-ZZ - SXD-GB-110.STL",
+        "GB-ZZ - SXD-GB-109.STL",
+        "GB-ZZ - SXD-GB-108.STL",
+        "GB-ZZ - SXD-GB-107.STL",
+        "GB-ZZ - SXD-GB-106.STL",
+        "GB-ZZ - SXD-GB-105.STL",
+        "GB-ZZ - SXD-GB-104.STL",
+        "GB-ZZ - SXD-GB-103.STL",
+        "GB-ZZ - SXD-GB-102.STL",
+        "GB-ZZ - SXD-GB-101.STL",
+        "GB-ZZ - SXD-GB-100.STL",
+        "GB-ZZ - SXD-GB-99.STL",
+        "GB-ZZ - SXD-GB-98.STL",
+        "GB-ZZ - SXD-GB-97.STL",
+        "GB-ZZ - SXD-GB-96.STL",
+        "GB-ZZ - SXD-GB-95.STL",
+        "GB-ZZ - SXD-GB-94.STL",
+        "GB-ZZ - SXD-GB-93.STL",
+        "GB-ZZ - SXD-GB-92.STL",
+        "GB-ZZ - SXD-GB-91.STL",
+        "GB-ZZ - SXD-GB-90.STL",
+        "GB-ZZ - SXD-GB-89.STL",
+        "GB-ZZ - SXD-GB-88.STL",
+        "GB-ZZ - SXD-GB-87.STL",
+        "GB-ZZ - SXD-GB-86.STL",
+        "GB-ZZ - SXD-GB-85.STL",
+        "GB-ZZ - SXD-GB-84.STL",
+        "GB-ZZ - SXD-GB-83.STL",
+        "GB-ZZ - SXD-GB-82.STL",
+        "GB-ZZ - SXD-GB-81.STL",
+        "GB-ZZ - SXD-GB-80.STL",
+        "GB-ZZ - SXD-GB-79.STL",
+        "GB-ZZ - SXD-GB-78.STL",
+        "GB-ZZ - SXD-GB-77.STL",
+        "GB-ZZ - SXD-GB-76.STL",
+        "GB-ZZ - SXD-GB-75.STL",
+        "GB-ZZ - SXD-GB-74.STL",
+        "GB-ZZ - SXD-GB-73.STL",
+        "GB-ZZ - SXD-GB-72.STL",
+        "GB-ZZ - SXD-GB-71.STL",
+        "GB-ZZ - SXD-GB-70.STL",
+        "GB-ZZ - SXD-GB-69.STL",
+        "GB-ZZ - SXD-GB-68.STL",
+        "GB-ZZ - SXD-GB-67.STL",
+        "GB-ZZ - SXD-GB-66.STL",
+        "GB-ZZ - SXD-GB-65.STL",
+        "GB-ZZ - SXD-GB-64.STL",
+        "GB-ZZ - SXD-GB-63.STL",
+        "GB-ZZ - SXD-GB-62.STL",
+        "GB-ZZ - SXD-GB-61.STL",
+        "GB-ZZ - SXD-GB-60.STL",
+        "GB-ZZ - SXD-GB-59.STL",
+        "GB-ZZ - SXD-GB-58.STL",
+        "GB-ZZ - SXD-GB-57.STL",
+        "GB-ZZ - SXD-GB-56.STL",
+        "GB-ZZ - SXD-GB-55.STL",
+        "GB-ZZ - SXD-GB-54.STL",
+        "GB-ZZ - SXD-GB-53.STL",
+        "GB-ZZ - SXD-GB-52.STL",
+        "GB-ZZ - SXD-GB-51.STL",
+        "GB-ZZ - SXD-GB-50.STL",
+        "GB-ZZ - SXD-GB-49.STL",
+        "GB-ZZ - SXD-GB-48.STL",
+        "GB-ZZ - SXD-GB-47.STL",
+        "GB-ZZ - SXD-GB-46.STL",
+        "GB-ZZ - SXD-GB-45.STL",
+        "GB-ZZ - SXD-GB-44.STL",
+        "GB-ZZ - SXD-GB-43.STL",
+        "GB-ZZ - SXD-GB-42.STL",
+        "GB-ZZ - SXD-GB-41.STL",
+        "GB-ZZ - SXD-GB-40.STL",
+        "GB-ZZ - SXD-GB-39.STL",
+        "GB-ZZ - SXD-GB-38.STL",
+        "GB-ZZ - SXD-GB-37.STL",
+        "GB-ZZ - SXD-GB-36.STL",
+        "GB-ZZ - SXD-GB-35.STL",
+        "GB-ZZ - SXD-GB-34.STL",
+        "GB-ZZ - SXD-GB-33.STL",
+        "GB-ZZ - SXD-GB-32.STL",
+        "GB-ZZ - SXD-GB-31.STL",
+        "GB-ZZ - SXD-GB-30.STL",
+        "GB-ZZ - SXD-GB-29.STL",
+        "GB-ZZ - SXD-GB-28.STL",
+        "GB-ZZ - SXD-GB-27.STL",
+        "GB-ZZ - SXD-GB-26.STL",
+        "GB-ZZ - SXD-GB-25.STL",
+        "GB-ZZ - SXD-GB-24.STL",
+        "GB-ZZ - SXD-GB-23.STL",
+        "GB-ZZ - SXD-GB-22.STL",
+        "GB-ZZ - SXD-GB-21.STL",
+        "GB-ZZ - SXD-GB-20.STL",
+        "GB-ZZ - SXD-GB-19.STL",
+        "GB-ZZ - SXD-GB-18.STL",
+        "GB-ZZ - SXD-GB-17.STL",
+        "GB-ZZ - SXD-GB-16.STL",
+        "GB-ZZ - SXD-GB-15.STL",
+        "GB-ZZ - SXD-GB-14.STL",
+        "GB-ZZ - SXD-GB-13.STL",
+        "GB-ZZ - SXD-GB-12.STL",
+        "GB-ZZ - SXD-GB-11.STL",
+        "GB-ZZ - SXD-GB-10.STL",
+        "GB-ZZ - SXD-GB-9.STL",
+        "GB-ZZ - SXD-GB-8.STL",
+        "GB-ZZ - SXD-GB-7.STL",
+        "GB-ZZ - SXD-GB-6.STL",
+        "GB-ZZ - SXD-GB-5.STL",
+        "GB-ZZ - SXD-GB-4.STL",
+        "GB-ZZ - SXD-GB-3.STL",
+        "GB-ZZ - SXD-GB-2.STL",
+        "GB-ZZ - SXD-GB-1.STL",
+        "GB-ZZ - ZXD-GB-120.STL",
+        "GB-ZZ - ZXD-GB-119.STL",
+        "GB-ZZ - ZXD-GB-118.STL",
+        "GB-ZZ - ZXD-GB-117.STL",
+        "GB-ZZ - ZXD-GB-116.STL",
+        "GB-ZZ - ZXD-GB-115.STL",
+        "GB-ZZ - ZXD-GB-114.STL",
+        "GB-ZZ - ZXD-GB-113.STL",
+        "GB-ZZ - ZXD-GB-112.STL",
+        "GB-ZZ - ZXD-GB-111.STL",
+        "GB-ZZ - ZXD-GB-110.STL",
+        "GB-ZZ - ZXD-GB-109.STL",
+        "GB-ZZ - ZXD-GB-108.STL",
+        "GB-ZZ - ZXD-GB-107.STL",
+        "GB-ZZ - ZXD-GB-106.STL",
+        "GB-ZZ - ZXD-GB-105.STL",
+        "GB-ZZ - ZXD-GB-104.STL",
+        "GB-ZZ - ZXD-GB-103.STL",
+        "GB-ZZ - ZXD-GB-102.STL",
+        "GB-ZZ - ZXD-GB-101.STL",
+        "GB-ZZ - ZXD-GB-100.STL",
+        "GB-ZZ - ZXD-GB-99.STL",
+        "GB-ZZ - ZXD-GB-98.STL",
+        "GB-ZZ - ZXD-GB-97.STL",
+        "GB-ZZ - ZXD-GB-96.STL",
+        "GB-ZZ - ZXD-GB-95.STL",
+        "GB-ZZ - ZXD-GB-94.STL",
+        "GB-ZZ - ZXD-GB-93.STL",
+        "GB-ZZ - ZXD-GB-92.STL",
+        "GB-ZZ - ZXD-GB-91.STL",
+        "GB-ZZ - ZXD-GB-90.STL",
+        "GB-ZZ - ZXD-GB-89.STL",
+        "GB-ZZ - ZXD-GB-88.STL",
+        "GB-ZZ - ZXD-GB-87.STL",
+        "GB-ZZ - ZXD-GB-86.STL",
+        "GB-ZZ - ZXD-GB-85.STL",
+        "GB-ZZ - ZXD-GB-84.STL",
+        "GB-ZZ - ZXD-GB-83.STL",
+        "GB-ZZ - ZXD-GB-82.STL",
+        "GB-ZZ - ZXD-GB-81.STL",
+        "GB-ZZ - ZXD-GB-80.STL",
+        "GB-ZZ - ZXD-GB-79.STL",
+        "GB-ZZ - ZXD-GB-78.STL",
+        "GB-ZZ - ZXD-GB-77.STL",
+        "GB-ZZ - ZXD-GB-76.STL",
+        "GB-ZZ - ZXD-GB-75.STL",
+        "GB-ZZ - ZXD-GB-74.STL",
+        "GB-ZZ - ZXD-GB-73.STL",
+        "GB-ZZ - ZXD-GB-72.STL",
+        "GB-ZZ - ZXD-GB-71.STL",
+        "GB-ZZ - ZXD-GB-70.STL",
+        "GB-ZZ - ZXD-GB-69.STL",
+        "GB-ZZ - ZXD-GB-68.STL",
+        "GB-ZZ - ZXD-GB-67.STL",
+        "GB-ZZ - ZXD-GB-66.STL",
+        "GB-ZZ - ZXD-GB-65.STL",
+        "GB-ZZ - ZXD-GB-64.STL",
+        "GB-ZZ - ZXD-GB-63.STL",
+        "GB-ZZ - ZXD-GB-62.STL",
+        "GB-ZZ - ZXD-GB-61.STL",
+        "GB-ZZ - ZXD-GB-60.STL",
+        "GB-ZZ - ZXD-GB-59.STL",
+        "GB-ZZ - ZXD-GB-58.STL",
+        "GB-ZZ - ZXD-GB-57.STL",
+        "GB-ZZ - ZXD-GB-56.STL",
+        "GB-ZZ - ZXD-GB-55.STL",
+        "GB-ZZ - ZXD-GB-54.STL",
+        "GB-ZZ - ZXD-GB-53.STL",
+        "GB-ZZ - ZXD-GB-52.STL",
+        "GB-ZZ - ZXD-GB-51.STL",
+        "GB-ZZ - ZXD-GB-50.STL",
+        "GB-ZZ - ZXD-GB-49.STL",
+        "GB-ZZ - ZXD-GB-48.STL",
+        "GB-ZZ - ZXD-GB-47.STL",
+        "GB-ZZ - ZXD-GB-46.STL",
+        "GB-ZZ - ZXD-GB-45.STL",
+        "GB-ZZ - ZXD-GB-44.STL",
+        "GB-ZZ - ZXD-GB-43.STL",
+        "GB-ZZ - ZXD-GB-42.STL",
+        "GB-ZZ - ZXD-GB-41.STL",
+        "GB-ZZ - ZXD-GB-40.STL",
+        "GB-ZZ - ZXD-GB-39.STL",
+        "GB-ZZ - ZXD-GB-38.STL",
+        "GB-ZZ - ZXD-GB-37.STL",
+        "GB-ZZ - ZXD-GB-36.STL",
+        "GB-ZZ - ZXD-GB-35.STL",
+        "GB-ZZ - ZXD-GB-34.STL",
+        "GB-ZZ - ZXD-GB-33.STL",
+        "GB-ZZ - ZXD-GB-32.STL",
+        "GB-ZZ - ZXD-GB-31.STL",
+        "GB-ZZ - ZXD-GB-30.STL",
+        "GB-ZZ - ZXD-GB-29.STL",
+        "GB-ZZ - ZXD-GB-28.STL",
+        "GB-ZZ - ZXD-GB-27.STL",
+        "GB-ZZ - ZXD-GB-26.STL",
+        "GB-ZZ - ZXD-GB-25.STL",
+        "GB-ZZ - ZXD-GB-24.STL",
+        "GB-ZZ - ZXD-GB-23.STL",
+        "GB-ZZ - ZXD-GB-22.STL",
+        "GB-ZZ - ZXD-GB-21.STL",
+        "GB-ZZ - ZXD-GB-20.STL",
+        "GB-ZZ - ZXD-GB-19.STL",
+        "GB-ZZ - ZXD-GB-18.STL",
+        "GB-ZZ - ZXD-GB-17.STL",
+        "GB-ZZ - ZXD-GB-16.STL",
+        "GB-ZZ - ZXD-GB-15.STL",
+        "GB-ZZ - ZXD-GB-14.STL",
+        "GB-ZZ - ZXD-GB-13.STL",
+        "GB-ZZ - ZXD-GB-12.STL",
+        "GB-ZZ - ZXD-GB-11.STL",
+        "GB-ZZ - ZXD-GB-10.STL",
+        "GB-ZZ - ZXD-GB-9.STL",
+        "GB-ZZ - ZXD-GB-8.STL",
+        "GB-ZZ - ZXD-GB-7.STL",
+        "GB-ZZ - ZXD-GB-6.STL",
+        "GB-ZZ - ZXD-GB-5.STL",
+        "GB-ZZ - ZXD-GB-4.STL",
+        "GB-ZZ - ZXD-GB-3.STL",
+        "GB-ZZ - ZXD-GB-2.STL",
+        "GB-ZZ - ZXD-GB-1.STL"
+    ]
+
+    var NUMBER = 121
+
+    var gbColorList = []
+
+    var raycaster = new THREE.Raycaster();
+    var mouseVector = new THREE.Vector3();
+
+    var smallGroupPosition = [
+        [2000, 8800, 2100, 0],
+        [2300, 6950, 2100, 12],
+        [3000, 5280, 2100, 24],
+        [3977, 3747, 2100, 36],
+        [5200, 2437, 2100, 47],
+        [6680, 1360, 2100, 58],
+        [8370, 570, 2100, 70],
+        [10170, 150, 2100, 80],
+        [12000, 0, 2100, 90],
+        [14000, 0, 2100, 90],
+        [16000, 0, 2100, 90],
+        [18000, 0, 2100, 90],
+        [20000, 0, 2100, 90],
+        [22000, 0, 2100, 90],
+        [24000, 0, 2100, 90],
+        [26000, 0, 2100, 90],
+        [28000, 0, 2100, 90],
+        [30000, 0, 2100, 90],
+
+    ]
+
+    $(function () {
+
+
+        init();
+        animate();
+
+
+        function init() {
+            container = document.getElementById('container')
+            // renderer = new THREE.WebGLRenderer({antialias: true});
+            renderer = new THREE.WebGLRenderer({antialias: true, alpha: true});//透明样式
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            //renderer.setClearColor(0x000000, 1)
+            container.appendChild(renderer.domElement);
+
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 1000000);
+            camera.position.set(9978, 36616, 36257);
+            // camera.rotation.set(-0.74, 0.35, 0.30 )
+            camera.up.set(0, 1, 0)
+            camera.lookAt(new THREE.Vector3(10000, 0, 0))
+
+
+            scene = new THREE.Scene();
+
+
+            addShadowedLight(0, 10000, 0, 0xffffff, 0.8);
+            addShadowedLight(10000, 5000, 0, 0xffffff, 1);
+            // addShadowedLight(0, 0, 1000, 0xffffff, 0.5);
+
+
+            control = new THREE.OrbitControls(camera, renderer.domElement)
+
+            var manager = new THREE.LoadingManager(afterLoad);
+            manager.onProgress = function (url, itemsLoaded, itemsTotal) {
+                document.getElementById("progressbar").getElementsByTagName("div")[0].style.width = (itemsLoaded / itemsTotal * 100) + '%';
+                if ((itemsLoaded / itemsTotal) === 1) {
+                    $('.over').hide()
+                }
+
+            };
+
+            var loader = new THREE.STLLoader(manager);
+
+            bigGroup = new THREE.Group()
+            bigGroup2 = new THREE.Group()
+            smallGroup = new THREE.Group()
+            otherGroup = new THREE.Group()
+            otherSmallGroup = new THREE.Group()
+            otherSmallGroup2 = new THREE.Group()
+
+            gbgroup = new THREE.Group()
+            gbgroup2 = new THREE.Group()
+
+            function load() {
+                loader.load('../object/machine_custom2/' + list[loadIndex], function (geometry) {
+                    var material = new THREE.MeshPhongMaterial({color: 0xAAAAAA, specular: 0x111111, shininess: 200});
+                    var mesh = new THREE.Mesh(geometry, material);
+                    mesh.name = list[loadIndex]
+                    if (list[loadIndex] === 'LZJZZ-0-D-2.STL' || list[loadIndex] === 'JJQKSGHT-1.STL') {
+                        otherSmallGroup.add(mesh)
+                        otherSmallGroup2.add(mesh.clone())
+                    } else if (list[loadIndex] === 'LZJZZ - HZT-1.STL' || list[loadIndex] === 'LZJZZ - ZJG-1.STL') {
+
+                        otherGroup.add(mesh)
+                    } else {
+                        mesh.position.set(-2000, -8800, -2100)
+                        smallGroup.add(mesh);
+                    }
+                    loadIndex++;
+                    if (loadIndex < list.length) {
+                        load()
+                    }
+                });
+
+            }
+
+            function load2() {
+                loader.load('../object/gb-fs/' + gbList[loadIndexGb], function (geometry) {
+                    var material = new THREE.MeshBasicMaterial({color: 0xAAAAAA});
+                    var mesh = new THREE.Mesh(geometry, material);
+                    mesh.name = gbList[loadIndexGb]
+
+                    gbgroup.name = 'gbgroup'
+                    gbgroup.add(mesh)
+                    gbgroup.rotation.y = Math.PI
+                    gbgroup.position.set(25200, 0, 4500)
+                    gbgroup2.name = 'gbgroup2'
+                    gbgroup2.add(mesh.clone())
+                    gbgroup2.rotation.y = Math.PI
+                    gbgroup2.position.set(25200, 0, 14030)
+
+                    if (gbList[loadIndexGb] === 'GB-ZZ - ZXD-GB-120.STL') {
+                        for (var i = 119; i > 0; i--) {
+                            var material_ = material.clone()
+                            var mesh_ = new THREE.Mesh(geometry, material_);
+                            mesh_.position.set(i * 191.5 - 22788.5, 0, 0)
+                            mesh_.name = 'GB-ZZ - ZXD-GB-' + i + '.STL'
+                            gbgroup.add(mesh_)
+                            gbgroup2.add(mesh_.clone())
+                        }
+                    }
+
+                    loadIndexGb++;
+                    if (loadIndexGb < NUMBER) {
+                        load2()
+                    }
+                });
+            }
+
+            load()
+            load2()
+
+            function afterLoad() {
+
+                scene.add(gbgroup)
+                scene.add(gbgroup2)
+
+                for (var i = 0; i < 120; i++) {
+                    var colornumY = ((164 / 120) / 255) * i
+                    var colornumZ = ((9 / 120) / 255) * i
+                    gbColorList[i] = [252 / 255, 19 / 255 + colornumY, 19 / 255 - colornumZ]
+                    var colornum2X = ((77 / 120) / 255) * i
+                    var colornum2Y = ((16 / 120) / 255) * i
+                    var colornum2Z = ((65 / 120) / 255) * i
+
+                    gbColorList[i + 120] = [252 / 255 - colornum2X, 183 / 255 - colornum2Y, 10 / 255 + colornum2Z]
+
+
+                }
+
+                time()
+
+                for (var i = 0; i < smallGroupPosition.length; i++) {
+                    var smallClone = smallGroup.clone()
+                    for (var j = 0; j < smallGroup.children.length; j++) {
+                        smallClone.children[j].material = smallGroup.children[j].material.clone()
+                    }
+                    smallClone.name = 'partsR' + (i + 1)
+                    smallClone.position.set(smallGroupPosition[i][0], smallGroupPosition[i][1], smallGroupPosition[i][2])
+                    // THREE.Math.degToRad(90)  90度转化成弧度
+                    smallClone.rotation.z = THREE.Math.degToRad(smallGroupPosition[i][3])
+
+                    bigGroup.add(smallClone)
+                }
+
+                bigGroup.name = 'bigGroup'
+                bigGroup.position.set(-9144, 0, 1300)
+                scene.add(bigGroup)
+
+                for (var i = 0; i < smallGroupPosition.length; i++) {
+                    var smallClone2 = smallGroup.clone()
+                    for (var j = 0; j < smallGroup.children.length; j++) {
+                        smallClone2.children[j].material = smallGroup.children[j].material.clone()
+                    }
+                    smallClone2.name = 'partsL' + (i + 1)
+                    smallClone2.position.set(smallGroupPosition[i][0], smallGroupPosition[i][1], smallGroupPosition[i][2])
+                    // THREE.Math.degToRad(90)  90度转化成弧度
+                    smallClone2.rotation.z = THREE.Math.degToRad(smallGroupPosition[i][3])
+
+                    bigGroup2.add(smallClone2)
+
+
+                }
+
+                bigGroup2.name = 'bigGroup2'
+                bigGroup2.position.set(-9144, 0, 10814)
+                scene.add(bigGroup2)
+
+                otherGroup.position.set(-30000, 0, 0)
+                otherSmallGroup.name = 'otherSmallGroup'
+                otherGroup.add(otherSmallGroup)
+                otherSmallGroup2.position.set(0, 0, -9500)
+                otherSmallGroup2.name = 'otherSmallGroup2'
+                otherGroup.add(otherSmallGroup2)
+                otherGroup.name = 'otherGroup'
+                scene.add(otherGroup)
+
+
+                scene.getObjectByName('otherGroup').getObjectByName('LZJZZ - HZT-1.STL').position.set(6500, 5500, 2500)
+                scene.getObjectByName('otherGroup').getObjectByName('LZJZZ - HZT-1.STL').scale.set(0.7, 0.7, 0.7)
+                scene.getObjectByName('otherGroup').getObjectByName('LZJZZ - ZJG-1.STL').position.set(0, 750, 0)
+                scene.getObjectByName('otherSmallGroup').getObjectByName('JJQKSGHT-1.STL').position.set(0, 240, 0)
+                scene.getObjectByName('otherSmallGroup2').getObjectByName('JJQKSGHT-1.STL').position.set(0, 240, 0)
+                scene.getObjectByName('gbgroup').getObjectByName('GB-ZZ - ZXD-GB-1.STL').visible = false
+                scene.getObjectByName('gbgroup2').getObjectByName('GB-ZZ - ZXD-GB-1.STL').visible = false
+
+            }
+
+            window.addEventListener('resize', onWindowResize, false)
+            window.addEventListener('mousemove', onDocumentMouseMove, false)
+        }
+
+        function onDocumentMouseMove(event) {
+            event.preventDefault()
+            if (selectedObject) {
+                selectedObject = null;
+            }
+            var intersects = getIntersects(event.layerX, event.layerY);
+            if (intersects.length > 0) {
+                var res = intersects.filter(function (res) {
+                    return res && res.object;
+                })[0];
+                if (res && res.object) {
+                    selectedObject = res.object
+                }
+            }
+        }
+
+        function getIntersects(x, y) {
+            x = (x / window.innerWidth) * 2 - 1;
+            y = -(y / window.innerHeight) * 2 + 1;
+            mouseVector.set(x, y, 0.5);
+            raycaster.setFromCamera(mouseVector, camera);
+            return raycaster.intersectObject(scene, true);
+
+        }
+
+        function whiteModles() {
+            /// 暴力for循环, 模型全变白 欧耶! (2个)
+            for (var i = 0; i < scene.getObjectByName('bigGroup').children.length; i++) {
+                if (scene.getObjectByName('bigGroup').children[i].type === 'Group') {
+                    for (var j = 0; j < scene.getObjectByName('bigGroup').children[i].children.length; j++) {
+                        if (scene.getObjectByName('bigGroup').children[i].children[j].type === 'Mesh') {
+                            scene.getObjectByName('bigGroup').children[i].children[j].material.color.setHex(0xaaaaaa)
+                        }
+                    }
+                }
+
+            }
+
+            for (var i = 0; i < scene.getObjectByName('bigGroup2').children.length; i++) {
+                if (scene.getObjectByName('bigGroup2').children[i].type === 'Group') {
+                    for (var j = 0; j < scene.getObjectByName('bigGroup2').children[i].children.length; j++) {
+                        if (scene.getObjectByName('bigGroup2').children[i].children[j].type === 'Mesh') {
+                            scene.getObjectByName('bigGroup2').children[i].children[j].material.color.setHex(0xaaaaaa)
+                        }
+                    }
+                }
+
+            }
+
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight
+            camera.updateProjectionMatrix()
+            renderer.setSize(window.innerWidth, window.innerHeight)
+
+        }
+
+
+        function addShadowedLight(x, y, z, color, intensity) {
+
+            var directionalLight = new THREE.DirectionalLight(color, intensity);
+            directionalLight.position.set(x, y, z);
+            // var helper = new THREE.DirectionalLightHelper( directionalLight, 5 );
+            scene.add(directionalLight);
+            // scene.add( helper );
+
+        }
+
+        function renderChange() {
+            bigGroup2.position.set(controls['zl_x'], controls['zl_y'], controls['zl_z'])
+            bigGroup.position.set(controls['yl_x'], controls['yl_y'], controls['yl_z'])
+            otherGroup.position.set(controls['shang_x'], controls['shang_y'], controls['shang_z'])
+            otherSmallGroup.position.set(controls['shangOther_x'], controls['shangOther_y'], controls['shangOther_z'])
+            otherSmallGroup2.position.set(controls['shangOther2_x'], controls['shangOther2_y'], controls['shangOther2_z'])
+            scene.getObjectByName('otherGroup').getObjectByName('LZJZZ - HZT-1.STL').position.set(controls['HZT_x'], controls['HZT_y'], controls['HZT_z'])
+            scene.getObjectByName('otherGroup').getObjectByName('LZJZZ - HZT-1.STL').scale.set(controls['HZT_scale'], controls['HZT_scale'], controls['HZT_scale'])
+            scene.getObjectByName('otherGroup').getObjectByName('LZJZZ - ZJG-1.STL').position.set(controls['ZJG_x'], controls['ZJG_y'], controls['ZJG_z'])
+            scene.getObjectByName('otherGroup').getObjectByName('LZJZZ - ZJG-1.STL').scale.set(controls['ZJG_scale'], controls['ZJG_scale'], controls['ZJG_scale'])
+            scene.getObjectByName('otherSmallGroup').getObjectByName('JJQKSGHT-1.STL').position.set(controls['JJQ_l_x'], controls['JJQ_l_y'], controls['JJQ_l_z'])
+            scene.getObjectByName('otherSmallGroup').getObjectByName('JJQKSGHT-1.STL').scale.set(controls['JJQ_l_scale'], controls['JJQ_l_scale'], controls['JJQ_l_scale'])
+            scene.getObjectByName('otherSmallGroup2').getObjectByName('JJQKSGHT-1.STL').position.set(controls['JJQ_r_x'], controls['JJQ_r_y'], controls['JJQ_r_z'])
+            scene.getObjectByName('otherSmallGroup2').getObjectByName('JJQKSGHT-1.STL').scale.set(controls['JJQ_r_scale'], controls['JJQ_r_scale'], controls['JJQ_r_scale'])
+        }
+
+        function whiteGb(num) {
+            for (var i = 0; i < num; i++) {
+                scene.getObjectByName(gbList[i]).material.color.setHex(0xaaaaaa)
+            }
+        }
+
+        function changeColorGb(num) {
+            for (var i = 0; i < num; i++) {
+                scene.getObjectByName(gbList[i]).material.color.setRGB(gbColorList[i][0], gbColorList[i][1], gbColorList[i][2])
+            }
+        }
+
+        function time() {
+            setInterval(function () {
+                then += 1
+
+                try {
+                    if (!isWhite) {
+                        changeColorGb(then % 240)
+                    } else {
+                        whiteGb(then % 240)
+                    }
+
+                    if (parseInt(then / 240) % 2 === 1) {
+                        isWhite = true
+                    } else {
+                        isWhite = false
+                    }
+                } catch (e) {
+
+                }
+            }, 200)
+        }
+
+
+        function animate() {
+
+            renderer.render(scene, camera);
+            requestAnimationFrame(animate);
+        }
+
+        $(document).click(function () {
+            window.whiteAll();
+            // debugger
+            try {
+                var name = selectedObject.parent.name.slice(5, selectedObject.parent.name.length)
+                console.log(name[0], name.slice(1))
+                // window.parent.calltarget(name[0], name.slice(1))
+                parent.postMessage(name[0]+''+name.slice(1),'http://bigscreen.casting.dian19.com/#/details');
+                window.target(name[0], name.slice(1), 0xff0000)
+            } catch (e) {
+
+            }
+
+        })
+
+        window.target = function (arr, position, color, html) {
+
+            for (var i = 0; i < scene.getObjectByName('parts' + arr + position).children.length; i++) {
+                scene.getObjectByName('parts' + arr + position).children[i].material.color.setHex(color)
+            }
+            
+            scene.getObjectByName('parts' + arr + position).getObjectByName('LZJZZ - ZG^LZJZZ-1 SXD-ZZ-1 SXD-1.STL').material.color.setHex(color)
+            // html 添加入 #customize
+            $('#customize').html(html)
+        }
+
+        window.whiteAll = function () {
+            whiteModles()
+        }
+
+    })
+
+</script>
+
+</body>
+</html>
